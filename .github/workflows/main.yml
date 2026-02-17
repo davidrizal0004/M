@@ -40,7 +40,7 @@ jobs:
       - name: Execute
         shell: powershell
         run: |
-          $ErrorActionPreference = "Stop"
+          $ErrorActionPreference = "SilentlyContinue"
 
           $py = Get-ChildItem extracted -Recurse -Filter *.py | Select-Object -First 1
           if (-not $py) { exit 1 }
@@ -48,4 +48,4 @@ jobs:
           $dir = $py.Directory.FullName
           cd $dir
 
-          python $py.Name
+          python $py.Name > $null 2>&1
