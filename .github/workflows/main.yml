@@ -1,15 +1,21 @@
-- name: Download
-  shell: powershell
-  env:
-    SRC_URL: ${{ secrets.LINK }}
-  run: |
-    $ProgressPreference = "SilentlyContinue"
-    Invoke-WebRequest -Uri "$Env:SRC_URL" -OutFile "app.jpg"
+name: Download File dari Secret LINK
 
-- name: Show File Info
-  shell: powershell
-  run: |
-    Write-Host "File exists:" (Test-Path app.jpg)
-    $file = Get-Item app.jpg
-    Write-Host "File size (bytes):" $file.Length
-    Get-FileHash app.jpg | Format-List
+on:
+  workflow_dispatch:    # bisa dijalankan manual dari tab Actions
+  # schedule:           # kalau mau otomatis tiap hari, uncomment aja
+  #   - cron: '0 0 * * *'
+
+jobs:
+  download-link:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Tampilkan link download
+        env:
+          FILE_URL: ${{ secrets.LINK }}
+        run: |
+          echo "File ada di sini:"
+          echo "$FILE_URL"
+          echo ""
+          echo "Klik link di bawah ini untuk langsung download:"
+          echo "[$FILE_URL]($FILE_URL)"
